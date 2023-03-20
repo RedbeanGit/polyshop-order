@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>fr.dopolytech.polyshop</groupId>
 	<artifactId>order</artifactId>
-	<version>0.0.2-SNAPSHOT</version>
+	<version>0.0.3-SNAPSHOT</version>
 	<name>order</name>
 	<description>Order project for PolyShop</description>
 	<properties>
