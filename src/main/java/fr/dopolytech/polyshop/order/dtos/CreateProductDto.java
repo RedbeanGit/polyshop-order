@@ -27,6 +27,11 @@ public class CreateProductDto implements Dto<Product> {
     @Override
     public Product toModel() throws DtoException {
         String catalogUrl = System.getenv("CATALOG_API_URL");
+
+        if (catalogUrl == null || catalogUrl.isBlank()) {
+            catalogUrl = "http://localhost:8081";
+        }
+        
         RestTemplate restTemplate = new RestTemplate();
         CatalogProduct catalogProduct;
 

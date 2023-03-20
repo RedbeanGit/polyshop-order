@@ -25,6 +25,10 @@ public class Product {
     @Column(name = "order_id")
     private long orderId;
 
+    public Product() {
+        
+    }
+
     public Product(String name, double price, int quantity, long orderId) {
         this.name = name;
         this.price = price;

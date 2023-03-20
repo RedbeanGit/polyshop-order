@@ -1,8 +1,10 @@
 package fr.dopolytech.polyshop.order.controllers;
 
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import static org.springframework.http.HttpStatus.BAD_GATEWAY;
@@ -38,5 +40,13 @@ class ProductController {
         } catch (NotFoundException e) {
             throw new ResponseStatusException(NOT_FOUND, e.getMessage());
         }
+    }
+
+    @GetMapping(produces = "application/json")
+    public Iterable<Product> getProducts(@RequestParam(name = "order", required = false) Long orderId) {
+        if (orderId == null) {
+            return productRepository.findAll();
+        }
+        return productRepository.findAllByOrderId(orderId);
     }
 }

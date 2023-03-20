@@ -9,3 +9,23 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: order
+
+  mongo:
+    image: mongo:6.0.5
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=catalog
+      - MONGO_INITDB_ROOT_PASSWORD=catalog
+      - MONGO_INITDB_DATABASE=admin
+  
+  catalog:
+    image: redbeandock/polyshop-catalog:latest
+    environment:
+      - MONGODB_HOST=mongo
+      - MONGODB_PORT=27017
+      - MONGODB_DATABASE=admin
+      - MONGODB_USERNAME=catalog
+      - MONGODB_PASSWORD=catalog
+    ports:
+      - "8081:8080"
+    depends_on:
+      - mongo
