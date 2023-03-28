@@ -10,22 +10,53 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: order
 
-  mongo:
+  mongo_catalog:
     image: mongo:6.0.5
     environment:
       - MONGO_INITDB_ROOT_USERNAME=catalog
       - MONGO_INITDB_ROOT_PASSWORD=catalog
       - MONGO_INITDB_DATABASE=admin
+
+  mongo_inventory:
+    image: mongo:6.0.5
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=inventory
+      - MONGO_INITDB_ROOT_PASSWORD=inventory
+      - MONGO_INITDB_DATABASE=admin
+
+  eureka:
+    image: redbeandock/polyshop-discovery-server:latest
+    ports:
+      - "8761:8761"
   
   catalog:
     image: redbeandock/polyshop-catalog:latest
     environment:
-      - MONGODB_HOST=mongo
+      - MONGODB_HOST=mongo_catalog
       - MONGODB_PORT=27017
       - MONGODB_DATABASE=admin
       - MONGODB_USERNAME=catalog
       - MONGODB_PASSWORD=catalog
+      - EUREKA_HOST=eureka
+      - EUREKA_PORT=8761
     ports:
       - "8081:8080"
     depends_on:
-      - mongo
+      - mongo_catalog
+      - eureka
+  
+  inventory:
+    image: redbeandock/polyshop-inventory:latest
+    environment:
+      - MONGODB_HOST=mongo_inventory
+      - MONGODB_PORT=27017
+      - MONGODB_DATABASE=admin
+      - MONGODB_USERNAME=inventory
+      - MONGODB_PASSWORD=inventory
+      - EUREKA_HOST=eureka
+      - EUREKA_PORT=8761
+    ports:
+      - "8082:8080"
+    depends_on:
+      - mongo_inventory
+      - eureka

@@ -13,41 +13,40 @@ import static org.springframework.http.HttpStatus.BAD_GATEWAY;
 
 import fr.dopolytech.polyshop.order.dtos.CreateOrderDto;
 import fr.dopolytech.polyshop.order.dtos.CreateProductDto;
-import fr.dopolytech.polyshop.order.dtos.exceptions.CatalogApiUnreachableException;
-import fr.dopolytech.polyshop.order.dtos.exceptions.DtoException;
-import fr.dopolytech.polyshop.order.dtos.exceptions.NotFoundException;
-import fr.dopolytech.polyshop.order.dtos.exceptions.ValidationException;
+import fr.dopolytech.polyshop.order.exceptions.CatalogApiUnreachableException;
+import fr.dopolytech.polyshop.order.exceptions.NotFoundException;
+import fr.dopolytech.polyshop.order.exceptions.ValidationException;
 import fr.dopolytech.polyshop.order.models.Order;
 import fr.dopolytech.polyshop.order.models.Product;
-import fr.dopolytech.polyshop.order.repositories.OrderRepository;
-import fr.dopolytech.polyshop.order.repositories.ProductRepository;
+import fr.dopolytech.polyshop.order.services.OrderService;
+import fr.dopolytech.polyshop.order.services.ProductService;
 
 @RestController
 @RequestMapping("/orders")
 public class OrderController {
-    private final OrderRepository orderRepository;
-    private final ProductRepository productRepository;
+    private final ProductService productService;
+    private final OrderService orderService;
 
-    public OrderController(OrderRepository orderRepository, ProductRepository productRepository) {
-        this.orderRepository = orderRepository;
-        this.productRepository = productRepository;
+    public OrderController(OrderService orderService, ProductService productService) {
+        this.orderService = orderService;
+        this.productService = productService;
     }
 
     @GetMapping(produces = "application/json")
     public Iterable<Order> findAll() {
-        return orderRepository.findAll();
+        return orderService.getAll();
     }
 
     @GetMapping(value = "/{id}", produces = "application/json")
     public Order findById(@PathVariable Long id) {
-        return orderRepository.findById(id).get();
+        return orderService.getOne(id);
     }
 
     @PostMapping(consumes = "application/json", produces = "application/json")
-    public Order create(@RequestBody CreateOrderDto dto) throws DtoException {
+    public Order create(@RequestBody CreateOrderDto dto) throws Exception {
         try {
-            dto.validate();
-            return orderRepository.save(dto.toModel());
+            orderService.validateCreateDto(dto);
+            return orderService.save(orderService.createDtoToOrder(dto));
         } catch (ValidationException e) {
             throw new ResponseStatusException(BAD_REQUEST, e.getMessage());
         }
@@ -58,18 +57,18 @@ public class OrderController {
         if (id == null) {
             throw new ResponseStatusException(BAD_REQUEST, "Order id is required");
         }
-        return productRepository.findAllByOrderId(id);
+        return productService.getAllByOrderId(id);
     }
 
     @PostMapping(value = "/{id}/products", consumes = "application/json", produces = "application/json")
-    public Product addProductToOrder(@PathVariable Long id, @RequestBody CreateProductDto dto) throws DtoException {
+    public Product addProductToOrder(@PathVariable Long id, @RequestBody CreateProductDto dto) throws Exception {
         if (id == null) {
             throw new ResponseStatusException(BAD_REQUEST, "Order id is required");
         }
         try {
-            dto.validate();
             dto.setOrderId(id);
-            return productRepository.save(dto.toModel());
+            productService.validateCreateDto(dto);
+            return productService.save(productService.createDtoToProduct(dto));
         } catch (ValidationException e) {
             throw new ResponseStatusException(BAD_REQUEST, e.getMessage());
         } catch (CatalogApiUnreachableException e) {

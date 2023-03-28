@@ -26,7 +26,7 @@ public class Product {
     private long orderId;
 
     public Product() {
-        
+
     }
 
     public Product(String name, double price, int quantity, long orderId) {
