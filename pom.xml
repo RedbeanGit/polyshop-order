@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>fr.dopolytech.polyshop</groupId>
 	<artifactId>order</artifactId>
-	<version>0.0.4</version>
+	<version>0.0.5</version>
 	<name>order</name>
 	<description>Order project for PolyShop</description>
 	<properties>
@@ -41,6 +41,10 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webflux</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-amqp</artifactId>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.springframework.cloud/spring-cloud-starter-netflix-eureka-client -->
 		<dependency>
