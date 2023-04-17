@@ -5,14 +5,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import fr.dopolytech.polyshop.order.dtos.CreateProductDto;
+import fr.dopolytech.polyshop.order.exceptions.BadCatalogResponse;
 import fr.dopolytech.polyshop.order.exceptions.CatalogApiUnreachableException;
-import fr.dopolytech.polyshop.order.exceptions.NotFoundException;
-import fr.dopolytech.polyshop.order.exceptions.ValidationException;
 import fr.dopolytech.polyshop.order.models.CatalogProduct;
-import fr.dopolytech.polyshop.order.models.InventoryProduct;
 import fr.dopolytech.polyshop.order.models.Product;
 import fr.dopolytech.polyshop.order.repositories.ProductRepository;
-import reactor.core.publisher.Mono;
 
 @Service
 public class ProductService {
@@ -25,70 +22,33 @@ public class ProductService {
         this.productRepository = productRepository;
     }
 
-    public void validateCreateDto(CreateProductDto productDto) throws ValidationException {
-        if (productDto.productId == null || productDto.productId.isBlank()) {
-            throw new ValidationException("Product id is required");
-        }
-
-        if (productDto.quantity <= 0) {
-            throw new ValidationException("Quantity must be greater than 0");
-        }
+    public Product getProduct(String id) {
+        return productRepository.findByProductId(id);
     }
 
-    public Product createDtoToProduct(CreateProductDto productDto) throws Exception {
+    public Iterable<Product> getProductsByOrderId(String orderId) {
+        return productRepository.findByOrderId(orderId);
+    }
+
+    public Product createProduct(String orderId, CreateProductDto dto) throws Exception {
         String catalogUrl = "lb://catalog-service";
-        String inventoryUrl = "lb://inventory-service";
-
-        Mono<InventoryProduct> reactiveInventoryProduct;
-        Mono<CatalogProduct> reactiveCatalogProduct;
-
         WebClient webClient = webClientBuilder.build();
+        CatalogProduct catalogProduct;
 
         try {
-            reactiveInventoryProduct = webClient.get().uri(inventoryUrl + "/products/" +
-                    productDto.productId).retrieve()
-                    .bodyToMono(InventoryProduct.class);
+            catalogProduct = webClient.get().uri(catalogUrl + "/products/" + dto.productId)
+                    .retrieve()
+                    .bodyToMono(CatalogProduct.class).block();
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
             throw new CatalogApiUnreachableException("Can't reach catalog API");
         }
 
-        try {
-            reactiveCatalogProduct = webClient.get().uri(catalogUrl + "/products?inventory=" +
-                    productDto.productId)
-                    .retrieve().bodyToFlux(CatalogProduct.class).next();
-        } catch (Exception e) {
-            throw new CatalogApiUnreachableException("Can't reach inventory API");
-        }
-
-        InventoryProduct inventoryProduct = reactiveInventoryProduct.block();
-        CatalogProduct catalogProduct = reactiveCatalogProduct.block();
-
-        if (inventoryProduct == null) {
-            throw new NotFoundException("Product not found in inventory");
-        }
-
         if (catalogProduct == null) {
-            throw new NotFoundException("Product not found in catalog");
+            throw new BadCatalogResponse("The response doesn't seem to contain a CatalogProduct");
         }
 
-        return new Product(catalogProduct.name, inventoryProduct.price, inventoryProduct.quantity,
-                productDto.getOrderId());
-    }
-
-    public Iterable<Product> getAll() {
-        return productRepository.findAll();
-    }
-
-    public Iterable<Product> getAllByOrderId(Long orderId) {
-        return productRepository.findAllByOrderId(orderId);
-    }
-
-    public Product getOne(Long id) {
-        return productRepository.findById(id).get();
-    }
-
-    public Product save(Product product) {
+        Product product = new Product(catalogProduct.name, catalogProduct.price, dto.quantity, orderId);
         return productRepository.save(product);
     }
 }

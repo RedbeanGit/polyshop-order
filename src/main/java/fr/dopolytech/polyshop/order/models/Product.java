@@ -11,40 +11,32 @@ import jakarta.persistence.Table;
 public class Product {
     @Id
     @GeneratedValue
-    private long id;
+    public long id;
+
+    @Column(name = "product")
+    public String productId;
 
     @Column(name = "name")
-    private String name;
-
-    @Column(name = "price")
-    private double price;
+    public String name;
 
     @Column(name = "quantity")
-    private int quantity;
+    public int quantity;
+
+    @Column(name = "price")
+    public double price;
 
     @Column(name = "order_id")
-    private long orderId;
+    public String orderId;
 
     public Product() {
 
     }
 
-    public Product(String name, double price, int quantity, long orderId) {
+    public Product(String name, double price, int quantity, String orderId) {
         this.name = name;
         this.price = price;
         this.quantity = quantity;
         this.orderId = orderId;
     }
 
-    public long getId() {
-        return id;
-    }
-
-    public int getQuantity() {
-        return quantity;
-    }
-
-    public long getOrderId() {
-        return orderId;
-    }
 }

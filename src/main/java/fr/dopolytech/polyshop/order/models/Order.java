@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -15,13 +17,21 @@ public class Order {
     @GeneratedValue
     public long id;
 
+    @Column(name = "orderId", columnDefinition = "VARCHAR(255)")
+    public String orderId;
+
     @Column(name = "date", columnDefinition = "TIMESTAMP")
     public LocalDateTime date;
 
-    public Order() {}
+    @Enumerated(EnumType.ORDINAL)
+    public OrderStatus status;
 
-    public Order(LocalDateTime date) {
-        System.out.println("Order created at " + date);
+    public Order() {
+    }
+
+    public Order(String orderId, LocalDateTime date, OrderStatus status) {
+        this.orderId = orderId;
         this.date = date;
+        this.status = status;
     }
 }

@@ -1,47 +1,157 @@
 package fr.dopolytech.polyshop.order.services;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 
-import fr.dopolytech.polyshop.order.dtos.CreateOrderDto;
-import fr.dopolytech.polyshop.order.exceptions.ValidationException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+
+import fr.dopolytech.polyshop.order.dtos.CreateProductDto;
+import fr.dopolytech.polyshop.order.events.CartCheckoutEvent;
+import fr.dopolytech.polyshop.order.events.CartCheckoutEventProduct;
+import fr.dopolytech.polyshop.order.events.InventoryUpdateEvent;
+import fr.dopolytech.polyshop.order.events.InventoryUpdateEventProduct;
+import fr.dopolytech.polyshop.order.events.OrderEvent;
+import fr.dopolytech.polyshop.order.events.OrderEventProduct;
+import fr.dopolytech.polyshop.order.events.PaymentDoneEvent;
+import fr.dopolytech.polyshop.order.events.ShippingDoneEvent;
 import fr.dopolytech.polyshop.order.models.Order;
+import fr.dopolytech.polyshop.order.models.OrderStatus;
+import fr.dopolytech.polyshop.order.models.Product;
 import fr.dopolytech.polyshop.order.repositories.OrderRepository;
 
 @Service
 public class OrderService {
     private final OrderRepository orderRepository;
     private final QueueService queueService;
+    private final ProductService productService;
 
-    public OrderService(OrderRepository orderRepository, QueueService queueService) {
+    public OrderService(OrderRepository orderRepository, QueueService queueService, ProductService productService) {
         this.orderRepository = orderRepository;
         this.queueService = queueService;
+        this.productService = productService;
     }
 
-    public Order createDtoToOrder(CreateOrderDto dto) {
-        return new Order(LocalDateTime.now());
+    public Iterable<Order> getOrders() {
+        return this.orderRepository.findAll();
     }
 
-    public void validateCreateDto(CreateOrderDto dto) throws ValidationException {
+    public Order getOrder(String id) {
+        return this.orderRepository.findByOrderId(id);
     }
 
-    public Iterable<Order> getAll() {
-        return orderRepository.findAll();
+    public Order createOrder() {
+        Order order = new Order(UUID.randomUUID().toString(), LocalDateTime.now(), OrderStatus.CREATED);
+        return this.orderRepository.save(order);
     }
 
-    public Order getOne(Long id) {
-        return orderRepository.findById(id).get();
+    public Order updateStatus(String orderId, OrderStatus status) {
+        Order order = this.getOrder(orderId);
+        order.status = status;
+        return this.orderRepository.save(order);
     }
 
-    public Order save(Order order) {
-        return orderRepository.save(order);
+    @RabbitListener(queues = "cartCheckoutQueue")
+    public void onCartCheckout(String message) {
+        try {
+            CartCheckoutEvent cartCheckoutEvent = this.queueService.parse(message, CartCheckoutEvent.class);
+            List<OrderEventProduct> orderEventProducts = new ArrayList<OrderEventProduct>();
+
+            Order order = this.createOrder();
+
+            for (CartCheckoutEventProduct cartEventProduct : cartCheckoutEvent.products) {
+                CreateProductDto productDto = new CreateProductDto(cartEventProduct.productId,
+                        cartEventProduct.quantity);
+
+                try {
+                    Product product = this.productService.createProduct(order.orderId, productDto);
+                    OrderEventProduct orderEventProduct = new OrderEventProduct(product.productId, product.name,
+                            product.quantity, product.price);
+                    orderEventProducts.add(orderEventProduct);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    this.updateStatus(order.orderId, OrderStatus.CANCELLED);
+                    return;
+                }
+            }
+
+            OrderEvent orderCreatedEvent = new OrderEvent(order.orderId,
+                    orderEventProducts.toArray(new OrderEventProduct[orderEventProducts.size()]));
+            this.queueService.sendOrderCreated(orderCreatedEvent);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
     }
 
-    @RabbitListener(queues = "orderCheckoutQueue")
-    public void processOrder(String message) {
-        System.out.println("Message received: " + message);
-        queueService.sendProcess(message);
+    @RabbitListener(queues = "inventoryUpdateQueue")
+    public void onInventoryUpdate(String message) {
+        try {
+            InventoryUpdateEvent inventoryUpdateEvent = this.queueService.parse(message, InventoryUpdateEvent.class);
+
+            if (inventoryUpdateEvent.orderId != null) {
+                List<OrderEventProduct> orderEventProducts = new ArrayList<OrderEventProduct>();
+
+                for (InventoryUpdateEventProduct inventoryUpdateProduct : inventoryUpdateEvent.products) {
+                    if (inventoryUpdateProduct.success) {
+                        Product product = this.productService.getProduct(inventoryUpdateProduct.productId);
+                        OrderEventProduct orderEventProduct = new OrderEventProduct(product.productId, product.name,
+                                product.quantity, product.price);
+                        orderEventProducts.add(orderEventProduct);
+                    }
+                }
+
+                if (orderEventProducts.size() > 0) {
+                    this.updateStatus(inventoryUpdateEvent.orderId, OrderStatus.POSSIBLE);
+                    OrderEvent orderEvent = new OrderEvent(inventoryUpdateEvent.orderId,
+                            orderEventProducts.toArray(new OrderEventProduct[orderEventProducts.size()]));
+                    this.queueService.sendOrderPossible(orderEvent);
+                } else {
+                    this.updateStatus(inventoryUpdateEvent.orderId, OrderStatus.CANCELLED);
+                }
+            }
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @RabbitListener(queues = "paymentDoneQueue")
+    public void onPaymentDone(String message) {
+        try {
+            PaymentDoneEvent paymentDoneEvent = this.queueService.parse(message, PaymentDoneEvent.class);
+
+            if (paymentDoneEvent.success) {
+                this.updateStatus(paymentDoneEvent.orderId, OrderStatus.PAID);
+
+                Iterable<Product> products = this.productService.getProductsByOrderId(paymentDoneEvent.orderId);
+                List<OrderEventProduct> orderEventProducts = new ArrayList<OrderEventProduct>();
+
+                for (Product product : products) {
+                    OrderEventProduct orderEventProduct = new OrderEventProduct(product.productId, product.name,
+                            product.quantity, product.price);
+                    orderEventProducts.add(orderEventProduct);
+                }
+                OrderEvent orderEvent = new OrderEvent(paymentDoneEvent.orderId,
+                        orderEventProducts.toArray(new OrderEventProduct[orderEventProducts.size()]));
+                this.queueService.sendOrderPaid(orderEvent);
+            } else {
+                this.updateStatus(paymentDoneEvent.orderId, OrderStatus.CANCELLED);
+            }
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @RabbitListener(queues = "shippingDoneQueue")
+    public void onShippingDone(String message) {
+        try {
+            ShippingDoneEvent shippingDoneEvent = this.queueService.parse(message, ShippingDoneEvent.class);
+            this.updateStatus(shippingDoneEvent.orderId, OrderStatus.SHIPPED);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
     }
 }

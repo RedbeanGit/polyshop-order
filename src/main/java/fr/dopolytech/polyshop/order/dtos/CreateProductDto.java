@@ -2,15 +2,15 @@ package fr.dopolytech.polyshop.order.dtos;
 
 public class CreateProductDto {
     public String productId;
-    public int quantity;
+    public Integer quantity;
 
-    private long orderId;
+    public CreateProductDto() {
 
-    public void setOrderId(long orderId) {
-        this.orderId = orderId;
     }
 
-    public long getOrderId() {
-        return orderId;
+    public CreateProductDto(String productId, int quantity) {
+        this.productId = productId;
+        this.quantity = quantity;
     }
+
 }
