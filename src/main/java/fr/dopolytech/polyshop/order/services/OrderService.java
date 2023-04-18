@@ -55,7 +55,7 @@ public class OrderService {
         return this.orderRepository.save(order);
     }
 
-    @RabbitListener(queues = "cartCheckoutQueue")
+    @RabbitListener(queues = "createOrderQueue")
     public void onCartCheckout(String message) {
         try {
             CartCheckoutEvent cartCheckoutEvent = this.queueService.parse(message, CartCheckoutEvent.class);
@@ -87,7 +87,7 @@ public class OrderService {
         }
     }
 
-    @RabbitListener(queues = "inventoryUpdateQueue")
+    @RabbitListener(queues = "checkOrderQueue")
     public void onInventoryUpdate(String message) {
         try {
             InventoryUpdateEvent inventoryUpdateEvent = this.queueService.parse(message, InventoryUpdateEvent.class);
@@ -118,7 +118,7 @@ public class OrderService {
         }
     }
 
-    @RabbitListener(queues = "paymentDoneQueue")
+    @RabbitListener(queues = "payOrderQueue")
     public void onPaymentDone(String message) {
         try {
             PaymentDoneEvent paymentDoneEvent = this.queueService.parse(message, PaymentDoneEvent.class);
@@ -145,7 +145,7 @@ public class OrderService {
         }
     }
 
-    @RabbitListener(queues = "shippingDoneQueue")
+    @RabbitListener(queues = "shipOrderQueue")
     public void onShippingDone(String message) {
         try {
             ShippingDoneEvent shippingDoneEvent = this.queueService.parse(message, ShippingDoneEvent.class);

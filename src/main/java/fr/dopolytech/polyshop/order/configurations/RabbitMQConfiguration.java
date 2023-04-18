@@ -4,7 +4,6 @@ import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.TopicExchange;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -13,23 +12,23 @@ public class RabbitMQConfiguration {
     // Queues
 
     @Bean
-    public Queue cartCheckoutQueue() {
-        return new Queue("cartCheckoutQueue", true);
+    public Queue createOrderQueue() {
+        return new Queue("createOrderQueue", true);
     }
 
     @Bean
-    public Queue inventoryUpdateQueue() {
-        return new Queue("inventoryUpdateQueue", true);
+    public Queue checkOrderQueue() {
+        return new Queue("checkOrderQueue", true);
     }
 
     @Bean
-    public Queue paymentDoneQueue() {
-        return new Queue("paymentDoneQueue", true);
+    public Queue payOrderQueue() {
+        return new Queue("payOrderQueue", true);
     }
 
     @Bean
-    public Queue shippingDoneQueue() {
-        return new Queue("shippingDoneQueue", true);
+    public Queue shipOrderQueue() {
+        return new Queue("shipOrderQueue", true);
     }
 
     // Exchanges
@@ -57,26 +56,22 @@ public class RabbitMQConfiguration {
     // Bindings
 
     @Bean
-    public Binding orderBinding(@Qualifier("cartCheckoutQueue") Queue queue,
-            @Qualifier("cartExchange") TopicExchange exchange) {
-        return BindingBuilder.bind(queue).to(exchange).with("cart.checkout");
+    public Binding orderBinding(Queue createOrderQueue, TopicExchange cartExchange) {
+        return BindingBuilder.bind(createOrderQueue).to(cartExchange).with("cart.checkout");
     }
 
     @Bean
-    public Binding inventoryBinding(@Qualifier("inventoryUpdateQueue") Queue queue,
-            @Qualifier("inventoryExchange") TopicExchange exchange) {
-        return BindingBuilder.bind(queue).to(exchange).with("inventory.update");
+    public Binding inventoryBinding(Queue checkOrderQueue, TopicExchange inventoryExchange) {
+        return BindingBuilder.bind(checkOrderQueue).to(inventoryExchange).with("inventory.update");
     }
 
     @Bean
-    public Binding paymentBinding(@Qualifier("paymentDoneQueue") Queue queue,
-            @Qualifier("paymentExchange") TopicExchange exchange) {
-        return BindingBuilder.bind(queue).to(exchange).with("payment.done");
+    public Binding paymentBinding(Queue payOrderQueue, TopicExchange paymentExchange) {
+        return BindingBuilder.bind(payOrderQueue).to(paymentExchange).with("payment.done");
     }
 
     @Bean
-    public Binding shippingBinding(@Qualifier("shippingDoneQueue") Queue queue,
-            @Qualifier("shippingExchange") TopicExchange exchange) {
-        return BindingBuilder.bind(queue).to(exchange).with("shipping.done");
+    public Binding shippingBinding(Queue shipOrderQueue, TopicExchange shippingExchange) {
+        return BindingBuilder.bind(shipOrderQueue).to(shippingExchange).with("shipping.done");
     }
 }
