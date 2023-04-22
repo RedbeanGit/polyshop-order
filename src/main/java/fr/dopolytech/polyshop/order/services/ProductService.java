@@ -44,11 +44,13 @@ public class ProductService {
             throw new CatalogApiUnreachableException("Can't reach catalog API");
         }
 
-        if (catalogProduct == null) {
-            throw new BadCatalogResponse("The response doesn't seem to contain a CatalogProduct");
-        }
+        Product product;
 
-        Product product = new Product(catalogProduct.name, catalogProduct.price, dto.quantity, orderId);
+        if (catalogProduct == null) {
+            product = new Product("", 0.0, dto.quantity, orderId);
+        } else {
+            product = new Product(catalogProduct.name, catalogProduct.price, dto.quantity, orderId);
+        }
         return productRepository.save(product);
     }
 }
