@@ -21,8 +21,8 @@ public class ProductService {
         this.productRepository = productRepository;
     }
 
-    public Product getProduct(String id) {
-        return productRepository.findByProductId(id);
+    public Product getProduct(String orderId, String productId) {
+        return productRepository.findByOrderIdAndProductId(orderId, productId);
     }
 
     public Iterable<Product> getProductsByOrderId(String orderId) {

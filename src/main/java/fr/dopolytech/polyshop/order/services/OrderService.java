@@ -97,7 +97,8 @@ public class OrderService {
 
                 for (InventoryUpdateEventProduct inventoryUpdateProduct : inventoryUpdateEvent.products) {
                     if (inventoryUpdateProduct.success) {
-                        Product product = this.productService.getProduct(inventoryUpdateProduct.productId);
+                        Product product = this.productService.getProduct(inventoryUpdateEvent.orderId,
+                                inventoryUpdateProduct.productId);
                         OrderEventProduct orderEventProduct = new OrderEventProduct(product.productId, product.name,
                                 product.quantity, product.price);
                         orderEventProducts.add(orderEventProduct);

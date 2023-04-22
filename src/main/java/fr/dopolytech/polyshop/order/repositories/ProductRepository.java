@@ -7,5 +7,5 @@ import fr.dopolytech.polyshop.order.models.Product;
 public interface ProductRepository extends JpaRepository<Product, Long> {
     public Iterable<Product> findByOrderId(String orderId);
 
-    public Product findByProductId(String productId);
+    public Product findByOrderIdAndProductId(String orderId, String productId);
 }
