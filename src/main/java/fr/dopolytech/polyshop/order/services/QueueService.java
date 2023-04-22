@@ -19,7 +19,7 @@ public class QueueService {
 
     public void sendOrderCreated(OrderEvent event) throws JsonProcessingException {
         String message = this.stringify(event);
-        rabbitTemplate.convertAndSend("orderExchange", "order.process", message);
+        rabbitTemplate.convertAndSend("orderExchange", "order.created", message);
     }
 
     public void sendOrderPossible(OrderEvent event) throws JsonProcessingException {
