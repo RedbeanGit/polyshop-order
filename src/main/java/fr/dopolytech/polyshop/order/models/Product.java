@@ -32,7 +32,8 @@ public class Product {
 
     }
 
-    public Product(String name, double price, int quantity, String orderId) {
+    public Product(String productId, String name, double price, int quantity, String orderId) {
+        this.productId = productId;
         this.name = name;
         this.price = price;
         this.quantity = quantity;

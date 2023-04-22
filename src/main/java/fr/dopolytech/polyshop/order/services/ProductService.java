@@ -5,7 +5,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import fr.dopolytech.polyshop.order.dtos.CreateProductDto;
-import fr.dopolytech.polyshop.order.exceptions.BadCatalogResponse;
 import fr.dopolytech.polyshop.order.exceptions.CatalogApiUnreachableException;
 import fr.dopolytech.polyshop.order.models.CatalogProduct;
 import fr.dopolytech.polyshop.order.models.Product;
@@ -47,9 +46,9 @@ public class ProductService {
         Product product;
 
         if (catalogProduct == null) {
-            product = new Product("", 0.0, dto.quantity, orderId);
+            product = new Product(dto.productId, "", 0.0, dto.quantity, orderId);
         } else {
-            product = new Product(catalogProduct.name, catalogProduct.price, dto.quantity, orderId);
+            product = new Product(dto.productId, catalogProduct.name, catalogProduct.price, dto.quantity, orderId);
         }
         return productRepository.save(product);
     }
