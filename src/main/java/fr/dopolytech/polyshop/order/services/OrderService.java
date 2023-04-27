@@ -2,6 +2,7 @@ package fr.dopolytech.polyshop.order.services;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,8 +16,8 @@ import fr.dopolytech.polyshop.order.events.CartCheckoutEvent;
 import fr.dopolytech.polyshop.order.events.CartCheckoutEventProduct;
 import fr.dopolytech.polyshop.order.events.InventoryUpdateEvent;
 import fr.dopolytech.polyshop.order.events.InventoryUpdateEventProduct;
-import fr.dopolytech.polyshop.order.events.OrderEvent;
-import fr.dopolytech.polyshop.order.events.OrderEventProduct;
+import fr.dopolytech.polyshop.order.events.OrderCreatedEvent;
+import fr.dopolytech.polyshop.order.events.OrderCreatedEventProduct;
 import fr.dopolytech.polyshop.order.events.PaymentDoneEvent;
 import fr.dopolytech.polyshop.order.events.ShippingDoneEvent;
 import fr.dopolytech.polyshop.order.models.Order;
@@ -59,7 +60,7 @@ public class OrderService {
     public void onCartCheckout(String message) {
         try {
             CartCheckoutEvent cartCheckoutEvent = this.queueService.parse(message, CartCheckoutEvent.class);
-            List<OrderEventProduct> orderEventProducts = new ArrayList<OrderEventProduct>();
+            List<OrderCreatedEventProduct> orderEventProducts = new ArrayList<OrderCreatedEventProduct>();
 
             Order order = this.createOrder();
 
@@ -69,8 +70,8 @@ public class OrderService {
 
                 try {
                     Product product = this.productService.createProduct(order.orderId, productDto);
-                    OrderEventProduct orderEventProduct = new OrderEventProduct(product.productId, product.name,
-                            product.quantity, product.price);
+                    OrderCreatedEventProduct orderEventProduct = new OrderCreatedEventProduct(product.productId,
+                            product.name, product.quantity, product.price);
                     orderEventProducts.add(orderEventProduct);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -79,8 +80,8 @@ public class OrderService {
                 }
             }
 
-            OrderEvent orderCreatedEvent = new OrderEvent(order.orderId,
-                    orderEventProducts.toArray(new OrderEventProduct[orderEventProducts.size()]));
+            OrderCreatedEvent orderCreatedEvent = new OrderCreatedEvent(order.orderId,
+                    orderEventProducts.toArray(new OrderCreatedEventProduct[orderEventProducts.size()]));
             this.queueService.sendOrderCreated(orderCreatedEvent);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
@@ -93,25 +94,11 @@ public class OrderService {
             InventoryUpdateEvent inventoryUpdateEvent = this.queueService.parse(message, InventoryUpdateEvent.class);
 
             if (inventoryUpdateEvent.orderId != null) {
-                List<OrderEventProduct> orderEventProducts = new ArrayList<OrderEventProduct>();
-
-                for (InventoryUpdateEventProduct inventoryUpdateProduct : inventoryUpdateEvent.products) {
-                    if (inventoryUpdateProduct.success) {
-                        Product product = this.productService.getProduct(inventoryUpdateEvent.orderId,
-                                inventoryUpdateProduct.productId);
-                        OrderEventProduct orderEventProduct = new OrderEventProduct(product.productId, product.name,
-                                product.quantity, product.price);
-                        orderEventProducts.add(orderEventProduct);
-                    }
-                }
-
-                if (orderEventProducts.size() > 0) {
-                    this.updateStatus(inventoryUpdateEvent.orderId, OrderStatus.POSSIBLE);
-                    OrderEvent orderEvent = new OrderEvent(inventoryUpdateEvent.orderId,
-                            orderEventProducts.toArray(new OrderEventProduct[orderEventProducts.size()]));
-                    this.queueService.sendOrderPossible(orderEvent);
-                } else {
+                if (Arrays.asList(inventoryUpdateEvent.products).stream().map(product -> product.success)
+                        .anyMatch(success -> !success)) {
                     this.updateStatus(inventoryUpdateEvent.orderId, OrderStatus.CANCELLED);
+                } else {
+                    this.updateStatus(inventoryUpdateEvent.orderId, OrderStatus.POSSIBLE);
                 }
             }
         } catch (JsonProcessingException e) {
@@ -126,18 +113,6 @@ public class OrderService {
 
             if (paymentDoneEvent.success) {
                 this.updateStatus(paymentDoneEvent.orderId, OrderStatus.PAID);
-
-                Iterable<Product> products = this.productService.getProductsByOrderId(paymentDoneEvent.orderId);
-                List<OrderEventProduct> orderEventProducts = new ArrayList<OrderEventProduct>();
-
-                for (Product product : products) {
-                    OrderEventProduct orderEventProduct = new OrderEventProduct(product.productId, product.name,
-                            product.quantity, product.price);
-                    orderEventProducts.add(orderEventProduct);
-                }
-                OrderEvent orderEvent = new OrderEvent(paymentDoneEvent.orderId,
-                        orderEventProducts.toArray(new OrderEventProduct[orderEventProducts.size()]));
-                this.queueService.sendOrderPaid(orderEvent);
             } else {
                 this.updateStatus(paymentDoneEvent.orderId, OrderStatus.CANCELLED);
             }
@@ -150,7 +125,12 @@ public class OrderService {
     public void onShippingDone(String message) {
         try {
             ShippingDoneEvent shippingDoneEvent = this.queueService.parse(message, ShippingDoneEvent.class);
-            this.updateStatus(shippingDoneEvent.orderId, OrderStatus.SHIPPED);
+
+            if (shippingDoneEvent.success) {
+                this.updateStatus(shippingDoneEvent.orderId, OrderStatus.SHIPPED);
+            } else {
+                this.updateStatus(shippingDoneEvent.orderId, OrderStatus.CANCELLED);
+            }
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
