@@ -17,18 +17,33 @@ public class RabbitMQConfiguration {
     }
 
     @Bean
-    public Queue checkOrderQueue() {
-        return new Queue("checkOrderQueue", true);
+    public Queue checkSuccessOrderQueue() {
+        return new Queue("checkSuccessOrderQueue", true);
     }
 
     @Bean
-    public Queue payOrderQueue() {
-        return new Queue("payOrderQueue", true);
+    public Queue checkFailedOrderQueue() {
+        return new Queue("checkFailedOrderQueue", true);
     }
 
     @Bean
-    public Queue shipOrderQueue() {
-        return new Queue("shipOrderQueue", true);
+    public Queue paymentSuccessOrderQueue() {
+        return new Queue("paymentSuccessOrderQueue", true);
+    }
+
+    @Bean
+    public Queue paymentFailedOrderQueue() {
+        return new Queue("paymentFailedOrderQueue", true);
+    }
+
+    @Bean
+    public Queue shippingSuccessOrderQueue() {
+        return new Queue("shippingSuccessOrderQueue", true);
+    }
+
+    @Bean
+    public Queue shippingFailedOrderQueue() {
+        return new Queue("shippingFailedOrderQueue", true);
     }
 
     // Exchanges
@@ -61,17 +76,32 @@ public class RabbitMQConfiguration {
     }
 
     @Bean
-    public Binding inventoryBinding(Queue checkOrderQueue, TopicExchange inventoryExchange) {
-        return BindingBuilder.bind(checkOrderQueue).to(inventoryExchange).with("inventory.update");
+    public Binding inventorySuccessBinding(Queue checkSuccessOrderQueue, TopicExchange inventoryExchange) {
+        return BindingBuilder.bind(checkSuccessOrderQueue).to(inventoryExchange).with("inventory.update.success");
     }
 
     @Bean
-    public Binding paymentBinding(Queue payOrderQueue, TopicExchange paymentExchange) {
-        return BindingBuilder.bind(payOrderQueue).to(paymentExchange).with("payment.done");
+    public Binding inventoryFailedBinding(Queue checkFailedOrderQueue, TopicExchange inventoryExchange) {
+        return BindingBuilder.bind(checkFailedOrderQueue).to(inventoryExchange).with("inventory.update.failed");
     }
 
     @Bean
-    public Binding shippingBinding(Queue shipOrderQueue, TopicExchange shippingExchange) {
-        return BindingBuilder.bind(shipOrderQueue).to(shippingExchange).with("shipping.done");
+    public Binding paymentSuccessBinding(Queue paymentSuccessOrderQueue, TopicExchange paymentExchange) {
+        return BindingBuilder.bind(paymentSuccessOrderQueue).to(paymentExchange).with("payment.done.success");
+    }
+
+    @Bean
+    public Binding paymentFailedBinding(Queue paymentFailedOrderQueue, TopicExchange paymentExchange) {
+        return BindingBuilder.bind(paymentFailedOrderQueue).to(paymentExchange).with("payment.done.failed");
+    }
+
+    @Bean
+    public Binding shippingSuccessBinding(Queue shippingSuccessOrderQueue, TopicExchange shippingExchange) {
+        return BindingBuilder.bind(shippingSuccessOrderQueue).to(shippingExchange).with("shipping.done.success");
+    }
+
+    @Bean
+    public Binding shippingFailedBinding(Queue shippingFailedOrderQueue, TopicExchange shippingExchange) {
+        return BindingBuilder.bind(shippingFailedOrderQueue).to(shippingExchange).with("shipping.done.failed");
     }
 }

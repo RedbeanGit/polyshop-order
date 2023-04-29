@@ -5,8 +5,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import fr.dopolytech.polyshop.order.dtos.CreateProductDto;
-import fr.dopolytech.polyshop.order.exceptions.CatalogApiUnreachableException;
-import fr.dopolytech.polyshop.order.models.CatalogProduct;
 import fr.dopolytech.polyshop.order.models.Product;
 import fr.dopolytech.polyshop.order.repositories.ProductRepository;
 
@@ -29,27 +27,8 @@ public class ProductService {
         return productRepository.findByOrderId(orderId);
     }
 
-    public Product createProduct(String orderId, CreateProductDto dto) throws Exception {
-        String catalogUrl = "lb://catalog-service";
-        WebClient webClient = webClientBuilder.build();
-        CatalogProduct catalogProduct;
-
-        try {
-            catalogProduct = webClient.get().uri(catalogUrl + "/products/" + dto.productId)
-                    .retrieve()
-                    .bodyToMono(CatalogProduct.class).block();
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new CatalogApiUnreachableException("Can't reach catalog API");
-        }
-
-        Product product;
-
-        if (catalogProduct == null) {
-            product = new Product(dto.productId, "", 0.0, dto.quantity, orderId);
-        } else {
-            product = new Product(dto.productId, catalogProduct.name, catalogProduct.price, dto.quantity, orderId);
-        }
+    public Product createProduct(String orderId, CreateProductDto dto) {
+        Product product = new Product(dto.productId, dto.name, dto.price, dto.quantity, orderId);
         return productRepository.save(product);
     }
 }

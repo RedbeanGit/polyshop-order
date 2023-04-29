@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import fr.dopolytech.polyshop.order.events.OrderEvent;
+import fr.dopolytech.polyshop.order.models.PolyshopEvent;
 
 @Service
 public class QueueService {
@@ -17,26 +17,26 @@ public class QueueService {
         this.rabbitTemplate = rabbitTemplate;
     }
 
-    public void sendOrderCreated(OrderEvent event) throws JsonProcessingException {
+    public void sendOrderCreated(PolyshopEvent event) throws JsonProcessingException {
         String message = this.stringify(event);
         rabbitTemplate.convertAndSend("orderExchange", "order.created", message);
     }
 
-    public void sendPaymentCancelled(OrderEvent event) throws JsonProcessingException {
+    public void sendPaymentFailed(PolyshopEvent event) throws JsonProcessingException {
         String message = this.stringify(event);
-        rabbitTemplate.convertAndSend("orderExchange", "order.paid.cancelled", message);
+        rabbitTemplate.convertAndSend("orderExchange", "order.cancelled.payment", message);
     }
 
-    public void sendShippingCancelled(OrderEvent event) throws JsonProcessingException {
+    public void sendShippingFailed(PolyshopEvent event) throws JsonProcessingException {
         String message = this.stringify(event);
-        rabbitTemplate.convertAndSend("orderExchange", "order.shipped.cancelled", message);
+        rabbitTemplate.convertAndSend("orderExchange", "order.cancelled.shipping", message);
     }
 
-    public String stringify(Object data) throws JsonProcessingException {
+    public String stringify(PolyshopEvent data) throws JsonProcessingException {
         return mapper.writeValueAsString(data);
     }
 
-    public <T> T parse(String data, Class<T> type) throws JsonProcessingException {
-        return mapper.readValue(data, type);
+    public PolyshopEvent parse(String data) throws JsonProcessingException {
+        return mapper.readValue(data, PolyshopEvent.class);
     }
 }
