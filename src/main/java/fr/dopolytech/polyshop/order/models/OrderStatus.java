@@ -2,8 +2,10 @@ package fr.dopolytech.polyshop.order.models;
 
 public enum OrderStatus {
     CREATED,
-    POSSIBLE,
+    CHECKED,
+    CHECK_FAILED,
     PAID,
+    PAYMENT_FAILED,
     SHIPPED,
-    CANCELLED
+    SHIPPING_FAILED,
 }

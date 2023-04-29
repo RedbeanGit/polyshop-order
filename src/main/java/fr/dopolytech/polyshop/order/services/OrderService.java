@@ -15,9 +15,8 @@ import fr.dopolytech.polyshop.order.dtos.CreateProductDto;
 import fr.dopolytech.polyshop.order.events.CartCheckoutEvent;
 import fr.dopolytech.polyshop.order.events.CartCheckoutEventProduct;
 import fr.dopolytech.polyshop.order.events.InventoryUpdateEvent;
-import fr.dopolytech.polyshop.order.events.InventoryUpdateEventProduct;
-import fr.dopolytech.polyshop.order.events.OrderCreatedEvent;
-import fr.dopolytech.polyshop.order.events.OrderCreatedEventProduct;
+import fr.dopolytech.polyshop.order.events.OrderEvent;
+import fr.dopolytech.polyshop.order.events.OrderEventProduct;
 import fr.dopolytech.polyshop.order.events.PaymentDoneEvent;
 import fr.dopolytech.polyshop.order.events.ShippingDoneEvent;
 import fr.dopolytech.polyshop.order.models.Order;
@@ -60,7 +59,7 @@ public class OrderService {
     public void onCartCheckout(String message) {
         try {
             CartCheckoutEvent cartCheckoutEvent = this.queueService.parse(message, CartCheckoutEvent.class);
-            List<OrderCreatedEventProduct> orderEventProducts = new ArrayList<OrderCreatedEventProduct>();
+            List<OrderEventProduct> orderEventProducts = new ArrayList<OrderEventProduct>();
 
             Order order = this.createOrder();
 
@@ -70,18 +69,17 @@ public class OrderService {
 
                 try {
                     Product product = this.productService.createProduct(order.orderId, productDto);
-                    OrderCreatedEventProduct orderEventProduct = new OrderCreatedEventProduct(product.productId,
+                    OrderEventProduct orderEventProduct = new OrderEventProduct(product.productId,
                             product.name, product.quantity, product.price);
                     orderEventProducts.add(orderEventProduct);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    this.updateStatus(order.orderId, OrderStatus.CANCELLED);
                     return;
                 }
             }
 
-            OrderCreatedEvent orderCreatedEvent = new OrderCreatedEvent(order.orderId,
-                    orderEventProducts.toArray(new OrderCreatedEventProduct[orderEventProducts.size()]));
+            OrderEvent orderCreatedEvent = new OrderEvent(order.orderId,
+                    orderEventProducts.toArray(new OrderEventProduct[orderEventProducts.size()]));
             this.queueService.sendOrderCreated(orderCreatedEvent);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
@@ -96,9 +94,9 @@ public class OrderService {
             if (inventoryUpdateEvent.orderId != null) {
                 if (Arrays.asList(inventoryUpdateEvent.products).stream().map(product -> product.success)
                         .anyMatch(success -> !success)) {
-                    this.updateStatus(inventoryUpdateEvent.orderId, OrderStatus.CANCELLED);
+                    this.updateStatus(inventoryUpdateEvent.orderId, OrderStatus.CHECK_FAILED);
                 } else {
-                    this.updateStatus(inventoryUpdateEvent.orderId, OrderStatus.POSSIBLE);
+                    this.updateStatus(inventoryUpdateEvent.orderId, OrderStatus.CHECKED);
                 }
             }
         } catch (JsonProcessingException e) {
@@ -114,7 +112,16 @@ public class OrderService {
             if (paymentDoneEvent.success) {
                 this.updateStatus(paymentDoneEvent.orderId, OrderStatus.PAID);
             } else {
-                this.updateStatus(paymentDoneEvent.orderId, OrderStatus.CANCELLED);
+                List<OrderEventProduct> orderEventProducts = new ArrayList<OrderEventProduct>();
+                this.productService.getProductsByOrderId(paymentDoneEvent.orderId)
+                        .forEach(product -> new OrderEventProduct(product.productId, product.name, product.quantity,
+                                product.price));
+
+                OrderEvent orderEvent = new OrderEvent(paymentDoneEvent.orderId,
+                        orderEventProducts.toArray(new OrderEventProduct[orderEventProducts.size()]));
+
+                this.queueService.sendPaymentCancelled(orderEvent);
+                this.updateStatus(paymentDoneEvent.orderId, OrderStatus.PAYMENT_FAILED);
             }
         } catch (JsonProcessingException e) {
             e.printStackTrace();
@@ -129,7 +136,16 @@ public class OrderService {
             if (shippingDoneEvent.success) {
                 this.updateStatus(shippingDoneEvent.orderId, OrderStatus.SHIPPED);
             } else {
-                this.updateStatus(shippingDoneEvent.orderId, OrderStatus.CANCELLED);
+                List<OrderEventProduct> orderEventProducts = new ArrayList<OrderEventProduct>();
+                this.productService.getProductsByOrderId(shippingDoneEvent.orderId)
+                        .forEach(product -> new OrderEventProduct(product.productId, product.name, product.quantity,
+                                product.price));
+
+                OrderEvent orderEvent = new OrderEvent(shippingDoneEvent.orderId,
+                        orderEventProducts.toArray(new OrderEventProduct[orderEventProducts.size()]));
+
+                this.queueService.sendShippingCancelled(orderEvent);
+                this.updateStatus(shippingDoneEvent.orderId, OrderStatus.SHIPPING_FAILED);
             }
         } catch (JsonProcessingException e) {
             e.printStackTrace();

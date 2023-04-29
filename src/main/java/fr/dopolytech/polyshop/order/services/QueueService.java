@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import fr.dopolytech.polyshop.order.events.OrderCreatedEvent;
+import fr.dopolytech.polyshop.order.events.OrderEvent;
 
 @Service
 public class QueueService {
@@ -17,9 +17,19 @@ public class QueueService {
         this.rabbitTemplate = rabbitTemplate;
     }
 
-    public void sendOrderCreated(OrderCreatedEvent event) throws JsonProcessingException {
+    public void sendOrderCreated(OrderEvent event) throws JsonProcessingException {
         String message = this.stringify(event);
         rabbitTemplate.convertAndSend("orderExchange", "order.created", message);
+    }
+
+    public void sendPaymentCancelled(OrderEvent event) throws JsonProcessingException {
+        String message = this.stringify(event);
+        rabbitTemplate.convertAndSend("orderExchange", "order.paid.cancelled", message);
+    }
+
+    public void sendShippingCancelled(OrderEvent event) throws JsonProcessingException {
+        String message = this.stringify(event);
+        rabbitTemplate.convertAndSend("orderExchange", "order.shipped.cancelled", message);
     }
 
     public String stringify(Object data) throws JsonProcessingException {
