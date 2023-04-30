@@ -150,7 +150,7 @@ public class OrderService {
         }
     }
 
-    @RabbitListener(queues = "shippingSuccessOrderQueue")
+    @RabbitListener(queues = "shippingFailedOrderQueue")
     public void onShippingDoneFailed(String message) {
         try {
             PolyshopEvent event = this.queueService.parse(message);
