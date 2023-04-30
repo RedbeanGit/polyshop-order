@@ -17,19 +17,37 @@ public class QueueService {
         this.rabbitTemplate = rabbitTemplate;
     }
 
-    public void sendOrderCreated(PolyshopEvent event) throws JsonProcessingException {
+    private void send(PolyshopEvent event, String exchange, String routingKey) throws JsonProcessingException {
         String message = this.stringify(event);
-        rabbitTemplate.convertAndSend("orderExchange", "order.created", message);
+        rabbitTemplate.convertAndSend(exchange, routingKey, message);
     }
 
-    public void sendPaymentFailed(PolyshopEvent event) throws JsonProcessingException {
-        String message = this.stringify(event);
-        rabbitTemplate.convertAndSend("orderExchange", "order.cancelled.payment", message);
+    public void sendCreated(PolyshopEvent event) throws JsonProcessingException {
+        this.send(event, "orderExchange", "order.created");
     }
 
-    public void sendShippingFailed(PolyshopEvent event) throws JsonProcessingException {
-        String message = this.stringify(event);
-        rabbitTemplate.convertAndSend("orderExchange", "order.cancelled.shipping", message);
+    public void sendChecked(PolyshopEvent event) throws JsonProcessingException {
+        this.send(event, "orderExchange", "order.checked");
+    }
+
+    public void sendPaid(PolyshopEvent event) throws JsonProcessingException {
+        this.send(event, "orderExchange", "order.paid");
+    }
+
+    public void sendShipped(PolyshopEvent event) throws JsonProcessingException {
+        this.send(event, "orderExchange", "order.shipped");
+    }
+
+    public void sendCancelledCheck(PolyshopEvent event) throws JsonProcessingException {
+        this.send(event, "orderExchange", "order.cancelled.check");
+    }
+
+    public void sendCancelledPayment(PolyshopEvent event) throws JsonProcessingException {
+        this.send(event, "orderExchange", "order.cancelled.payment");
+    }
+
+    public void sendCancelledShipping(PolyshopEvent event) throws JsonProcessingException {
+        this.send(event, "orderExchange", "order.cancelled.shipping");
     }
 
     public String stringify(PolyshopEvent data) throws JsonProcessingException {

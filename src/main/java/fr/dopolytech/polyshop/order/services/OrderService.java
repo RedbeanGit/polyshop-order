@@ -44,33 +44,37 @@ public class OrderService {
         return this.orderRepository.save(order);
     }
 
+    @Transactional
     public Order updateStatus(String orderId, OrderStatus status) {
         Order order = this.getOrder(orderId);
         order.status = status;
         return this.orderRepository.save(order);
     }
 
-    @RabbitListener(queues = "createOrderQueue")
     @Transactional
+    public PolyshopEvent handleCreateEvent(PolyshopEvent event) {
+        Order order = this.createOrder();
+        List<PolyshopEventProduct> outputEventProducts = Arrays.asList(event.products)
+                .stream()
+                .map(eventProduct -> {
+                    CreateProductDto createProductDto = new CreateProductDto(eventProduct.id, eventProduct.name,
+                            eventProduct.price, eventProduct.quantity);
+                    Product product = this.productService.createProduct(order.orderId, createProductDto);
+                    return new PolyshopEventProduct(product.productId, product.name, product.price,
+                            product.quantity);
+                })
+                .toList();
+
+        return new PolyshopEvent(order.orderId,
+                outputEventProducts.toArray(new PolyshopEventProduct[outputEventProducts.size()]));
+    }
+
+    @RabbitListener(queues = "createOrderQueue")
     public void onCartCheckout(String message) {
         try {
             PolyshopEvent inputEvent = this.queueService.parse(message);
-            Order order = this.createOrder();
-
-            List<PolyshopEventProduct> outputEventProducts = Arrays.asList(inputEvent.products)
-                    .stream()
-                    .map(eventProduct -> {
-                        CreateProductDto createProductDto = new CreateProductDto(eventProduct.id, eventProduct.name,
-                                eventProduct.price, eventProduct.quantity);
-                        Product product = this.productService.createProduct(order.orderId, createProductDto);
-                        return new PolyshopEventProduct(product.productId, product.name, product.price,
-                                product.quantity);
-                    })
-                    .toList();
-
-            PolyshopEvent outputEvent = new PolyshopEvent(order.orderId,
-                    outputEventProducts.toArray(new PolyshopEventProduct[outputEventProducts.size()]));
-            this.queueService.sendOrderCreated(outputEvent);
+            PolyshopEvent outputEvent = this.handleCreateEvent(inputEvent);
+            this.queueService.sendCreated(outputEvent);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
@@ -79,10 +83,11 @@ public class OrderService {
     @RabbitListener(queues = "checkSuccessOrderQueue")
     public void onInventoryUpdateSuccess(String message) {
         try {
-            PolyshopEvent inputEvent = this.queueService.parse(message);
+            PolyshopEvent event = this.queueService.parse(message);
 
-            if (inputEvent.orderId != null) {
-                this.updateStatus(inputEvent.orderId, OrderStatus.CHECKED);
+            if (event.orderId != null) {
+                this.updateStatus(event.orderId, OrderStatus.CHECKED);
+                this.queueService.sendChecked(event);
             }
         } catch (JsonProcessingException e) {
             e.printStackTrace();
@@ -92,10 +97,11 @@ public class OrderService {
     @RabbitListener(queues = "checkFailedOrderQueue")
     public void onInventoryUpdateFailed(String message) {
         try {
-            PolyshopEvent inputEvent = this.queueService.parse(message);
+            PolyshopEvent event = this.queueService.parse(message);
 
-            if (inputEvent.orderId != null) {
-                this.updateStatus(inputEvent.orderId, OrderStatus.CHECK_FAILED);
+            if (event.orderId != null) {
+                this.updateStatus(event.orderId, OrderStatus.CHECK_FAILED);
+                this.queueService.sendCancelledCheck(event);
             }
         } catch (JsonProcessingException e) {
             e.printStackTrace();
@@ -105,10 +111,11 @@ public class OrderService {
     @RabbitListener(queues = "paymentSuccessOrderQueue")
     public void onPaymentDoneSuccess(String message) {
         try {
-            PolyshopEvent inputEvent = this.queueService.parse(message);
+            PolyshopEvent event = this.queueService.parse(message);
 
-            if (inputEvent.orderId != null) {
-                this.updateStatus(inputEvent.orderId, OrderStatus.PAID);
+            if (event.orderId != null) {
+                this.updateStatus(event.orderId, OrderStatus.PAID);
+                this.queueService.sendPaid(event);
             }
         } catch (JsonProcessingException e) {
             e.printStackTrace();
@@ -118,10 +125,11 @@ public class OrderService {
     @RabbitListener(queues = "paymentFailedOrderQueue")
     public void onPaymentDoneFailed(String message) {
         try {
-            PolyshopEvent inputEvent = this.queueService.parse(message);
+            PolyshopEvent event = this.queueService.parse(message);
 
-            if (inputEvent.orderId != null) {
-                this.updateStatus(inputEvent.orderId, OrderStatus.PAYMENT_FAILED);
+            if (event.orderId != null) {
+                this.updateStatus(event.orderId, OrderStatus.PAYMENT_FAILED);
+                this.queueService.sendCancelledPayment(event);
             }
         } catch (JsonProcessingException e) {
             e.printStackTrace();
@@ -131,10 +139,11 @@ public class OrderService {
     @RabbitListener(queues = "shippingSuccessOrderQueue")
     public void onShippingDoneSuccess(String message) {
         try {
-            PolyshopEvent inputEvent = this.queueService.parse(message);
+            PolyshopEvent event = this.queueService.parse(message);
 
-            if (inputEvent.orderId != null) {
-                this.updateStatus(inputEvent.orderId, OrderStatus.SHIPPED);
+            if (event.orderId != null) {
+                this.updateStatus(event.orderId, OrderStatus.SHIPPED);
+                this.queueService.sendShipped(event);
             }
         } catch (JsonProcessingException e) {
             e.printStackTrace();
@@ -144,10 +153,11 @@ public class OrderService {
     @RabbitListener(queues = "shippingSuccessOrderQueue")
     public void onShippingDoneFailed(String message) {
         try {
-            PolyshopEvent inputEvent = this.queueService.parse(message);
+            PolyshopEvent event = this.queueService.parse(message);
 
-            if (inputEvent.orderId != null) {
-                this.updateStatus(inputEvent.orderId, OrderStatus.SHIPPING_FAILED);
+            if (event.orderId != null) {
+                this.updateStatus(event.orderId, OrderStatus.SHIPPING_FAILED);
+                this.queueService.sendCancelledShipping(event);
             }
         } catch (JsonProcessingException e) {
             e.printStackTrace();
