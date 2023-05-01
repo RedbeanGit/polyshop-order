@@ -46,6 +46,11 @@ public class RabbitMQConfiguration {
         return new Queue("shippingFailedOrderQueue", true);
     }
 
+    @Bean
+    public Queue orderEventQueue() {
+        return new Queue("orderEventQueue", true);
+    }
+
     // Exchanges
 
     @Bean
@@ -66,6 +71,11 @@ public class RabbitMQConfiguration {
     @Bean
     public TopicExchange shippingExchange() {
         return new TopicExchange("shippingExchange");
+    }
+
+    @Bean
+    TopicExchange orderExchange() {
+        return new TopicExchange("orderExchange");
     }
 
     // Bindings
@@ -103,5 +113,10 @@ public class RabbitMQConfiguration {
     @Bean
     public Binding shippingFailedBinding(Queue shippingFailedOrderQueue, TopicExchange shippingExchange) {
         return BindingBuilder.bind(shippingFailedOrderQueue).to(shippingExchange).with("shipping.done.failed");
+    }
+
+    @Bean
+    public Binding orderEventBinding(Queue orderEventQueue, TopicExchange orderExchange) {
+        return BindingBuilder.bind(orderEventQueue).to(orderExchange).with("order.updated");
     }
 }

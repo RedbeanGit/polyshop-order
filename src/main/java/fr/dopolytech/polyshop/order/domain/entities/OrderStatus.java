@@ -1,4 +1,4 @@
-package fr.dopolytech.polyshop.order.models;
+package fr.dopolytech.polyshop.order.domain.entities;
 
 public enum OrderStatus {
     CREATED,

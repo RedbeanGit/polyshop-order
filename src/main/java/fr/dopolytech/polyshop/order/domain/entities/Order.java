@@ -1,6 +1,8 @@
-package fr.dopolytech.polyshop.order.models;
+package fr.dopolytech.polyshop.order.domain.entities;
 
 import java.time.LocalDateTime;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -21,6 +23,7 @@ public class Order {
     public String orderId;
 
     @Column(name = "date", columnDefinition = "TIMESTAMP")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, timezone = "UTC")
     public LocalDateTime date;
 
     @Enumerated(EnumType.ORDINAL)
@@ -32,6 +35,10 @@ public class Order {
     public Order(String orderId, LocalDateTime date, OrderStatus status) {
         this.orderId = orderId;
         this.date = date;
+        this.status = status;
+    }
+
+    public void setStatus(OrderStatus status) {
         this.status = status;
     }
 }

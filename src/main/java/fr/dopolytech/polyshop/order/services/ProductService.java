@@ -4,31 +4,35 @@ import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import fr.dopolytech.polyshop.order.dtos.CreateProductDto;
-import fr.dopolytech.polyshop.order.models.Product;
+import fr.dopolytech.polyshop.order.domain.commands.CreateProductCommand;
+import fr.dopolytech.polyshop.order.domain.entities.Product;
+import fr.dopolytech.polyshop.order.domain.events.ProductCreatedEvent;
 import fr.dopolytech.polyshop.order.repositories.ProductRepository;
 
 @Service
 public class ProductService {
     @LoadBalanced
     private final WebClient.Builder webClientBuilder;
-    private final ProductRepository productRepository;
+    private final ProductRepository repository;
+    private final StoreService store;
 
-    public ProductService(WebClient.Builder webClientBuilder, ProductRepository productRepository) {
+    public ProductService(WebClient.Builder webClientBuilder, ProductRepository repository, StoreService store) {
         this.webClientBuilder = webClientBuilder;
-        this.productRepository = productRepository;
+        this.repository = repository;
+        this.store = store;
     }
 
     public Product getProduct(String orderId, String productId) {
-        return productRepository.findByOrderIdAndProductId(orderId, productId);
+        return repository.findByOrderIdAndProductId(orderId, productId);
     }
 
     public Iterable<Product> getProductsByOrderId(String orderId) {
-        return productRepository.findByOrderId(orderId);
+        return repository.findByOrderId(orderId);
     }
 
-    public Product createProduct(String orderId, CreateProductDto dto) {
-        Product product = new Product(dto.productId, dto.name, dto.price, dto.quantity, orderId);
-        return productRepository.save(product);
+    public void createProduct(String orderId, CreateProductCommand command) {
+        ProductCreatedEvent event = new ProductCreatedEvent(command.productId, command.name, command.price,
+                command.quantity, orderId);
+        this.store.send(event);
     }
 }

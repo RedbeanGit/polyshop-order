@@ -1,4 +1,4 @@
-package fr.dopolytech.polyshop.order.controllers;
+package fr.dopolytech.polyshop.order.consumers.controllers;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -7,8 +7,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
-import fr.dopolytech.polyshop.order.models.Order;
-import fr.dopolytech.polyshop.order.models.Product;
+import fr.dopolytech.polyshop.order.domain.entities.Order;
+import fr.dopolytech.polyshop.order.domain.entities.Product;
 import fr.dopolytech.polyshop.order.services.OrderService;
 import fr.dopolytech.polyshop.order.services.ProductService;
 

@@ -1,4 +1,4 @@
-package fr.dopolytech.polyshop.order.models;
+package fr.dopolytech.polyshop.order.domain.entities;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

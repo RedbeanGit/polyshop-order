@@ -1,16 +1,16 @@
-package fr.dopolytech.polyshop.order.dtos;
+package fr.dopolytech.polyshop.order.domain.commands;
 
-public class CreateProductDto {
+public class CreateProductCommand {
     public String productId;
     public String name;
     public Double price;
     public Integer quantity;
 
-    public CreateProductDto() {
+    public CreateProductCommand() {
 
     }
 
-    public CreateProductDto(String productId, String name, Double price, Integer quantity) {
+    public CreateProductCommand(String productId, String name, Double price, Integer quantity) {
         this.productId = productId;
         this.name = name;
         this.price = price;

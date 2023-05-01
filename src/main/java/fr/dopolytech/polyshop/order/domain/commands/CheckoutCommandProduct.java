@@ -1,15 +1,15 @@
-package fr.dopolytech.polyshop.order.models;
+package fr.dopolytech.polyshop.order.domain.commands;
 
-public class PolyshopEventProduct {
+public class CheckoutCommandProduct {
     public String id;
     public String name;
     public Double price;
     public Integer quantity;
 
-    public PolyshopEventProduct() {
+    public CheckoutCommandProduct() {
     }
 
-    public PolyshopEventProduct(String id, String name, Double price, Integer quantity) {
+    public CheckoutCommandProduct(String id, String name, Double price, Integer quantity) {
         this.id = id;
         this.name = name;
         this.price = price;
