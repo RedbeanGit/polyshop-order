@@ -20,6 +20,13 @@ services:
       - POSTGRES_DB=order
     ports:
       - 5432:5432
+
+  eventstore_order:
+    image: eventstore/eventstore:latest
+    environment:
+      - EVENTSTORE_INSECURE=true
+    ports:
+      - 2113:2113
   
   mongo_catalog:
     image: mongo:6.0.5

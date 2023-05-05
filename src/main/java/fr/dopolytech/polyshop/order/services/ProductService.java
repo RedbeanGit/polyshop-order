@@ -14,12 +14,13 @@ public class ProductService {
     @LoadBalanced
     private final WebClient.Builder webClientBuilder;
     private final ProductRepository repository;
-    private final StoreService store;
+    private final EventStoreService eventStore;
 
-    public ProductService(WebClient.Builder webClientBuilder, ProductRepository repository, StoreService store) {
+    public ProductService(WebClient.Builder webClientBuilder, ProductRepository repository,
+            EventStoreService eventStore) {
         this.webClientBuilder = webClientBuilder;
         this.repository = repository;
-        this.store = store;
+        this.eventStore = eventStore;
     }
 
     public Product getProduct(String orderId, String productId) {
@@ -30,9 +31,9 @@ public class ProductService {
         return repository.findByOrderId(orderId);
     }
 
-    public void createProduct(String orderId, CreateProductCommand command) {
+    public void createProduct(String orderId, CreateProductCommand command) throws Exception {
         ProductCreatedEvent event = new ProductCreatedEvent(command.productId, command.name, command.price,
                 command.quantity, orderId);
-        this.store.send(event);
+        this.eventStore.send("order", event);
     }
 }

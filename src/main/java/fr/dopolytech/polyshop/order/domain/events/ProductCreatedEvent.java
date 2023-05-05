@@ -1,8 +1,6 @@
 package fr.dopolytech.polyshop.order.domain.events;
 
 public class ProductCreatedEvent extends Event {
-    public EventType type = EventType.PRODUCT_CREATED;
-
     public String productId;
     public String name;
     public Double price;
@@ -10,7 +8,7 @@ public class ProductCreatedEvent extends Event {
     public String orderId;
 
     public ProductCreatedEvent() {
-
+        this.type = EventType.PRODUCT_CREATED;
     }
 
     public ProductCreatedEvent(String productId, String name, Double price, Integer quantity, String orderId) {
@@ -19,5 +17,6 @@ public class ProductCreatedEvent extends Event {
         this.price = price;
         this.quantity = quantity;
         this.orderId = orderId;
+        this.type = EventType.PRODUCT_CREATED;
     }
 }

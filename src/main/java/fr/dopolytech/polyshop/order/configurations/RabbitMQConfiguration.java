@@ -13,42 +13,37 @@ public class RabbitMQConfiguration {
 
     @Bean
     public Queue createOrderQueue() {
-        return new Queue("createOrderQueue", true);
+        return new Queue("createOrderQueue", false);
     }
 
     @Bean
     public Queue checkSuccessOrderQueue() {
-        return new Queue("checkSuccessOrderQueue", true);
+        return new Queue("checkSuccessOrderQueue", false);
     }
 
     @Bean
     public Queue checkFailedOrderQueue() {
-        return new Queue("checkFailedOrderQueue", true);
+        return new Queue("checkFailedOrderQueue", false);
     }
 
     @Bean
     public Queue paymentSuccessOrderQueue() {
-        return new Queue("paymentSuccessOrderQueue", true);
+        return new Queue("paymentSuccessOrderQueue", false);
     }
 
     @Bean
     public Queue paymentFailedOrderQueue() {
-        return new Queue("paymentFailedOrderQueue", true);
+        return new Queue("paymentFailedOrderQueue", false);
     }
 
     @Bean
     public Queue shippingSuccessOrderQueue() {
-        return new Queue("shippingSuccessOrderQueue", true);
+        return new Queue("shippingSuccessOrderQueue", false);
     }
 
     @Bean
     public Queue shippingFailedOrderQueue() {
-        return new Queue("shippingFailedOrderQueue", true);
-    }
-
-    @Bean
-    public Queue orderEventQueue() {
-        return new Queue("orderEventQueue", true);
+        return new Queue("shippingFailedOrderQueue", false);
     }
 
     // Exchanges
@@ -71,11 +66,6 @@ public class RabbitMQConfiguration {
     @Bean
     public TopicExchange shippingExchange() {
         return new TopicExchange("shippingExchange");
-    }
-
-    @Bean
-    TopicExchange orderExchange() {
-        return new TopicExchange("orderExchange");
     }
 
     // Bindings
@@ -113,10 +103,5 @@ public class RabbitMQConfiguration {
     @Bean
     public Binding shippingFailedBinding(Queue shippingFailedOrderQueue, TopicExchange shippingExchange) {
         return BindingBuilder.bind(shippingFailedOrderQueue).to(shippingExchange).with("shipping.done.failed");
-    }
-
-    @Bean
-    public Binding orderEventBinding(Queue orderEventQueue, TopicExchange orderExchange) {
-        return BindingBuilder.bind(orderEventQueue).to(orderExchange).with("order.updated");
     }
 }
