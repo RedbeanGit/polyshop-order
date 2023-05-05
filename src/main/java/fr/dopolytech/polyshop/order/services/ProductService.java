@@ -1,8 +1,6 @@
 package fr.dopolytech.polyshop.order.services;
 
-import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import fr.dopolytech.polyshop.order.domain.commands.CreateProductCommand;
 import fr.dopolytech.polyshop.order.domain.entities.Product;
@@ -11,14 +9,10 @@ import fr.dopolytech.polyshop.order.repositories.ProductRepository;
 
 @Service
 public class ProductService {
-    @LoadBalanced
-    private final WebClient.Builder webClientBuilder;
     private final ProductRepository repository;
     private final EventStoreService eventStore;
 
-    public ProductService(WebClient.Builder webClientBuilder, ProductRepository repository,
-            EventStoreService eventStore) {
-        this.webClientBuilder = webClientBuilder;
+    public ProductService(ProductRepository repository, EventStoreService eventStore) {
         this.repository = repository;
         this.eventStore = eventStore;
     }
